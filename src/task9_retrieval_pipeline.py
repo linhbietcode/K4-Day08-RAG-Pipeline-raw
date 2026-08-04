@@ -48,7 +48,7 @@ def retrieve(
     best_dense_score = dense_results[0]["score"] if dense_results else 0.0
 
     if best_dense_score < score_threshold:
-        print(f"  ⚠ Semantic best score ({best_dense_score:.3f}) < threshold ({score_threshold}) -> Fallback PageIndex")
+        print(f"  [WARNING] Semantic best score ({best_dense_score:.3f}) < threshold ({score_threshold}) -> Fallback PageIndex")
         fallback = pageindex_search(query, top_k=top_k)
         if fallback:
             return fallback

@@ -17,19 +17,92 @@ CHUNK_SIZE = 500        # 500 ký tự phù hợp với nội dung điều kho�
 CHUNK_OVERLAP = 50      # Overlap 50 ký tự để giữ ngữ cảnh giữa các đoạn giáp ranh
 CHUNKING_METHOD = "recursive"
 
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"
-EMBEDDING_DIM = 384
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
+EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", "google").lower()
 VECTOR_STORE = "chromadb"
 COLLECTION_NAME = "university_admissions_docs"
 
 _model = None
 
 
+class GoogleEmbeddingWrapper:
+    def __init__(self, api_key: str, model_name: str = "models/text-embedding-004"):
+        import google.generativeai as genai
+        self.genai = genai
+        self.api_key = api_key
+        self.model_name = model_name
+        self.genai.configure(api_key=api_key)
+        os.environ["GOOGLE_API_KEY"] = api_key
+        os.environ["GEMINI_API_KEY"] = api_key
+
+    def _embed_batch(self, batch):
+        candidate_models = [
+            self.model_name,
+            "models/text-embedding-004",
+            "text-embedding-004",
+            "models/embedding-001",
+            "embedding-001",
+        ]
+        # Remove duplicates while preserving order
+        unique_models = []
+        for m in candidate_models:
+            if m and m not in unique_models:
+                unique_models.append(m)
+
+        last_exc = None
+        for m in unique_models:
+            try:
+                res = self.genai.embed_content(
+                    model=m,
+                    content=batch,
+                    task_type="retrieval_document"
+                )
+                emb = res.get("embedding")
+                if emb:
+                    return emb
+            except Exception as e:
+                last_exc = e
+                continue
+        if last_exc:
+            raise last_exc
+        raise RuntimeError("Không thể tạo embedding với các mô hình Gemini.")
+
+    def encode(self, texts, show_progress_bar=False):
+        is_single = isinstance(texts, str)
+        text_list = [texts] if is_single else list(texts)
+
+        embeddings = []
+        batch_size = 50
+        for i in range(0, len(text_list), batch_size):
+            batch = text_list[i : i + batch_size]
+            emb = self._embed_batch(batch)
+            if isinstance(emb, list):
+                if emb and isinstance(emb[0], (int, float)):
+                    embeddings.append(emb)
+                else:
+                    embeddings.extend(emb)
+
+        if is_single:
+            return embeddings[0] if embeddings else []
+        return embeddings
+
+
 def get_embedding_model():
     global _model
+    provider = os.getenv("EMBEDDING_PROVIDER", "google").lower()
     if _model is None:
-        from sentence_transformers import SentenceTransformer
-        _model = SentenceTransformer(EMBEDDING_MODEL)
+        if provider == "google":
+            api_key = os.getenv("GEMINI_API_KEY")
+            if not api_key:
+                # If no key set yet, fallback to sentence transformers
+                print("[WARNING] GEMINI_API_KEY is not set. Falling back to sentence-transformers.")
+                from sentence_transformers import SentenceTransformer
+                _model = SentenceTransformer("all-MiniLM-L6-v2")
+            else:
+                _model = GoogleEmbeddingWrapper(api_key=api_key)
+        else:
+            from sentence_transformers import SentenceTransformer
+            _model = SentenceTransformer(EMBEDDING_MODEL)
     return _model
 
 
@@ -95,7 +168,10 @@ def embed_chunks(chunks: list[dict]) -> list[dict]:
     texts = [c["content"] for c in chunks]
     embeddings = model.encode(texts, show_progress_bar=False)
     for chunk, emb in zip(chunks, embeddings):
-        chunk["embedding"] = emb.tolist()
+        if hasattr(emb, "tolist"):
+            chunk["embedding"] = emb.tolist()
+        else:
+            chunk["embedding"] = list(emb)
     return chunks
 
 

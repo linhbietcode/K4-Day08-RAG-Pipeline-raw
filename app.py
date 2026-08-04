@@ -6,6 +6,7 @@ App Streamlit — Trợ Lý Tra Cứu Điểm Chuẩn & Đề Án Tuyển Sinh �
 
 from __future__ import annotations
 
+import os
 import sys
 from html import escape
 from pathlib import Path
@@ -239,9 +240,55 @@ with st.sidebar:
 
     st.divider()
 
-    with st.expander("Tùy chọn truy xuất"):
+    with st.expander("⚙️ Cấu hình Google AI Studio & Pipeline", expanded=True):
+        current_key = os.getenv("GEMINI_API_KEY", "")
+        gemini_key_input = st.text_input(
+            "🔑 Google Gemini API Key",
+            type="password",
+            value=current_key,
+            help="Nhập API Key từ Google AI Studio (aistudio.google.com)",
+        )
+        if gemini_key_input:
+            os.environ["GEMINI_API_KEY"] = gemini_key_input
+
+        model_options = [
+            "gemini-2.5-flash-lite (3.5 Flash Lite)",
+            "gemini-2.0-flash-lite (3.1 Flash Lite)",
+            "gemini-2.5-flash (3.6 Flash)",
+            "gemini-2.0-flash",
+            "gemini-1.5-flash",
+        ]
+        selected_model_str = st.selectbox(
+            "🤖 Mô hình Generation (LLM)",
+            options=model_options,
+            index=0,
+            help="Chọn mô hình Gemini từ Google AI Studio",
+        )
+        selected_model = selected_model_str.split(" ")[0]
+
+        embedding_options = [
+            "google (Gemini Embedding 2 - text-embedding-004)",
+            "sentence_transformers (Local)",
+        ]
+        emb_choice = st.selectbox(
+            "🧠 Mô hình Embedding",
+            options=embedding_options,
+            index=0,
+        )
+        chosen_provider = "google" if "google" in emb_choice else "sentence_transformers"
+        os.environ["EMBEDDING_PROVIDER"] = chosen_provider
+
+        if st.button("🔄 Re-index ChromaDB Vector Store", use_container_width=True):
+            with st.spinner("Đang re-index dữ liệu tuyển sinh..."):
+                try:
+                    from src.task4_chunking_indexing import run_pipeline
+                    run_pipeline()
+                    st.success("Re-index dữ liệu thành công!")
+                except Exception as e:
+                    st.error(f"Lỗi khi re-index: {e}")
+
         top_k = st.slider(
-            "Số đoạn tài liệu sử dụng",
+            "Số đoạn tài liệu sử dụng (top_k)",
             min_value=3,
             max_value=10,
             value=5,
@@ -308,7 +355,12 @@ if query:
     with st.chat_message("assistant"):
         with st.spinner("Đang tìm tài liệu tuyển sinh và tổng hợp câu trả lời..."):
             try:
-                res = generate_with_citation(query, top_k=top_k)
+                res = generate_with_citation(
+                    query,
+                    top_k=top_k,
+                    conversation_history=messages,
+                    model_name=selected_model
+                )
                 answer = res["answer"]
                 sources = res["sources"]
             except Exception as exc:

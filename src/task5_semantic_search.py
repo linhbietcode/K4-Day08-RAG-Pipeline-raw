@@ -37,7 +37,16 @@ def semantic_search(query: str, top_k: int = 10) -> list[dict]:
         return []
 
     model = get_embedding_model()
-    query_vector = model.encode(query).tolist()
+    raw_emb = model.encode(query)
+    if hasattr(raw_emb, "tolist"):
+        raw_list = raw_emb.tolist()
+    else:
+        raw_list = list(raw_emb)
+
+    if raw_list and isinstance(raw_list[0], list):
+        query_vector = raw_list[0]
+    else:
+        query_vector = raw_list
 
     results = collection.query(
         query_embeddings=[query_vector],

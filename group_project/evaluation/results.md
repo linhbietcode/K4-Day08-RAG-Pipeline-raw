@@ -11,9 +11,9 @@
 | Metric | Config A (Hybrid + RRF Rerank) | Config B (Dense-Only No Rerank) | Đánh Giá Cải Tiến |
 |--------|-------------------------------|--------------------------------|-------------------|
 | **Faithfulness** | **1.0000** | 1.0000 | +0.0000 |
-| **Answer Relevance** | **0.6189** | 0.6189 | +0.0000 |
-| **Context Recall** | **0.4036** | 0.4036 | +0.0000 |
-| **Context Precision** | **0.4337** | 0.4337 | +0.0000 |
+| **Answer Relevance** | **0.5595** | 0.5595 | +0.0000 |
+| **Context Recall** | **0.3922** | 0.3922 | +0.0000 |
+| **Context Precision** | **0.4287** | 0.4287 | +0.0000 |
 
 ---
 
