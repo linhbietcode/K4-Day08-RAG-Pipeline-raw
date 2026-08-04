@@ -68,7 +68,7 @@ st.markdown("""
         font-size: 0.88rem;
     }
 </style>
-""", unsafe_allow_dict=True)
+""", unsafe_allow_html=True)
 
 # Header Section
 st.markdown("""
@@ -84,7 +84,7 @@ st.markdown("""
         <span class="badge">Citations & References</span>
     </div>
 </div>
-""", unsafe_allow_dict=True)
+""", unsafe_allow_html=True)
 
 # Sidebar Information
 with st.sidebar:
@@ -151,7 +151,7 @@ for msg in st.session_state.messages:
                         <b>[{idx}] {source_name}</b> (Điểm: {score:.3f} | Nguồn: <code style="color:#818cf8;">{ret_src}</code>)<br/>
                         <div style="color: #cbd5e1; margin-top: 4px;">"{src['content'][:250]}..."</div>
                     </div>
-                    """, unsafe_allow_dict=True)
+                    """, unsafe_allow_html=True)
 
 # Chat Input & Processing
 prompt = st.chat_input("Nhập câu hỏi tra cứu điểm chuẩn, học phí, chỉ tiêu tuyển sinh...")
@@ -187,7 +187,7 @@ if prompt:
                             <b>[{idx}] {source_name}</b> (Điểm: {score:.3f} | Nguồn: <code style="color:#818cf8;">{ret_src}</code>)<br/>
                             <div style="color: #cbd5e1; margin-top: 4px;">"{src['content'][:250]}..."</div>
                         </div>
-                        """, unsafe_allow_dict=True)
+                        """, unsafe_allow_html=True)
 
     # Append assistant response to memory
     st.session_state.messages.append({
