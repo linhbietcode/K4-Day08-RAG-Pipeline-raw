@@ -132,28 +132,6 @@ st.markdown(
         line-height: 1.5;
         font-size: .9rem;
     }
-    .suggestion-label {
-        margin: .9rem 0 .55rem;
-        color: #313b4d;
-        font-size: .83rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: .045em;
-    }
-    div[data-testid="stHorizontalBlock"] .stButton > button {
-        border-radius: 13px;
-        border-color: #dbe1ec;
-        background: #fff;
-        color: #263247;
-        font-weight: 550;
-        min-height: 3.25rem;
-        line-height: 1.3;
-    }
-    div[data-testid="stHorizontalBlock"] .stButton > button:hover {
-        border-color: #4263d8;
-        color: #2449bd;
-        background: #f7f9ff;
-    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -306,20 +284,6 @@ for message in messages:
             st.warning("Kết quả này đang dùng chế độ demo, chưa phải dữ liệu tuyển sinh thật.")
         if message["role"] == "assistant":
             render_sources(message.get("sources", []))
-
-
-suggestions = [
-    "Điều kiện xét tuyển bằng IELTS vào Bách khoa Hà Nội?",
-    "So sánh học phí Khoa học Máy tính tại VinUni và RMIT.",
-    "Điểm chuẩn Công nghệ thông tin ba năm gần nhất?",
-]
-st.markdown('<div class="suggestion-label">Câu hỏi gợi ý</div>', unsafe_allow_html=True)
-suggestion_columns = st.columns(len(suggestions))
-for index, (column, suggestion) in enumerate(zip(suggestion_columns, suggestions)):
-    with column:
-        if st.button(suggestion, key=f"suggestion_{index}", use_container_width=True):
-            st.session_state.pending_query = suggestion
-            st.rerun()
 
 
 typed_query = st.chat_input("Ví dụ: Điểm chuẩn ngành Khoa học Máy tính năm 2025 là bao nhiêu?")
