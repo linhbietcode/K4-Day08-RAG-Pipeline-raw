@@ -89,14 +89,6 @@ st.markdown("""
 # Sidebar Information
 with st.sidebar:
     st.image("https://img.icons8.com/isometric/96/graduation-cap.png", width=70)
-    st.header("📌 Thành Viên Nhóm")
-    st.markdown("""
-    - **Hoàng Bảo Huy** *(Leader - RAG Pipeline)*
-    - **Nguyễn Quốc Anh** *(Chatbot UI & Data)*
-    - **Trương Ái Linh** *(Evaluation & Golden Dataset)*
-    """)
-    st.divider()
-
     st.header("🏫 Trường Đại Học Hỗ Trợ")
     st.markdown("""
     - 🏛️ **Đại học Bách Khoa Hà Nội (HUST)**
