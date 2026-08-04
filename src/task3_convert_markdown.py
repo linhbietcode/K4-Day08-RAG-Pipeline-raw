@@ -1,28 +1,30 @@
 """
 Task 3 — Convert toàn bộ file trong data/landing/ thành Markdown.
-
-Sử dụng MarkItDown của Microsoft:
-    https://github.com/microsoft/markitdown
-
-Cài đặt:
-    pip install "markitdown[pdf]"
-    # Lưu ý: cần extra [pdf] để convert được file PDF. Chỉ "pip install markitdown"
-    # (không có extra) sẽ báo MissingDependencyException khi convert PDF, dù JSON/DOCX
-    # vẫn convert bình thường.
-
-Hướng dẫn:
-    1. Scan toàn bộ file trong data/landing/ (PDF, DOCX, JSON)
-    2. Convert sang Markdown
-    3. Lưu vào data/standardized/ giữ nguyên cấu trúc thư mục
 """
 
 import json
+import os
 from pathlib import Path
-
-from markitdown import MarkItDown
 
 LANDING_DIR = Path(__file__).parent.parent / "data" / "landing"
 OUTPUT_DIR = Path(__file__).parent.parent / "data" / "standardized"
+
+
+def extract_text_from_pdf(filepath: Path) -> str:
+    """Extract clean text from PDF file using pypdf."""
+    try:
+        import pypdf
+        reader = pypdf.PdfReader(str(filepath))
+        texts = []
+        for page in reader.pages:
+            t = page.extract_text()
+            if t:
+                texts.append(t)
+        if texts:
+            return "\n\n".join(texts)
+    except Exception as e:
+        print(f"  Warning pypdf failed on {filepath.name}: {e}")
+    return ""
 
 
 def convert_legal_docs():
@@ -31,17 +33,40 @@ def convert_legal_docs():
     output_dir = OUTPUT_DIR / "legal"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    md = MarkItDown()
+    try:
+        from markitdown import MarkItDown
+        md = MarkItDown()
+    except Exception:
+        md = None
 
     for filepath in legal_dir.iterdir():
-        if filepath.suffix.lower() in (".pdf", ".docx", ".doc"):
+        if filepath.suffix.lower() in (".pdf", ".docx", ".doc", ".txt"):
             print(f"Converting: {filepath.name}")
-            # TODO: Convert và lưu file
-            # result = md.convert(str(filepath))
-            # output_path = output_dir / f"{filepath.stem}.md"
-            # output_path.write_text(result.text_content, encoding="utf-8")
-            # print(f"  ✓ Saved: {output_path}")
-            raise NotImplementedError("Implement convert_legal_docs")
+            output_path = output_dir / f"{filepath.stem}.md"
+            text_content = ""
+
+            if md:
+                try:
+                    result = md.convert(str(filepath))
+                    if result.text_content and not result.text_content.startswith("%PDF"):
+                        text_content = result.text_content
+                except Exception as e:
+                    print(f"  Note: MarkItDown notice on {filepath.name}: {e}")
+
+            if not text_content and filepath.suffix.lower() == ".pdf":
+                text_content = extract_text_from_pdf(filepath)
+
+            if not text_content:
+                # If still empty, check corresponding text file or stem
+                txt_pair = filepath.with_suffix(".txt")
+                if txt_pair.exists():
+                    text_content = txt_pair.read_text(encoding="utf-8", errors="ignore")
+
+            if not text_content:
+                text_content = f"# {filepath.stem}\n\nNo text content extracted."
+
+            output_path.write_text(text_content, encoding="utf-8")
+            print(f"  ✓ Saved: {output_path}")
 
 
 def convert_news_articles():
@@ -53,19 +78,17 @@ def convert_news_articles():
     for filepath in news_dir.iterdir():
         if filepath.suffix.lower() == ".json":
             print(f"Converting: {filepath.name}")
-            # TODO: Đọc JSON, extract content_markdown, lưu thành .md
-            # data = json.loads(filepath.read_text(encoding="utf-8"))
-            # output_path = output_dir / f"{filepath.stem}.md"
-            #
-            # # Thêm metadata header
-            # header = f"# {data.get('title', 'Unknown')}\n\n"
-            # header += f"**Source:** {data.get('url', 'N/A')}\n"
-            # header += f"**Crawled:** {data.get('date_crawled', 'N/A')}\n\n---\n\n"
-            #
-            # content = header + data.get("content_markdown", "")
-            # output_path.write_text(content, encoding="utf-8")
-            # print(f"  ✓ Saved: {output_path}")
-            raise NotImplementedError("Implement convert_news_articles")
+            data = json.loads(filepath.read_text(encoding="utf-8"))
+            output_path = output_dir / f"{filepath.stem}.md"
+
+            # Thêm metadata header
+            header = f"# {data.get('title', 'Unknown')}\n\n"
+            header += f"**Source:** {data.get('url', 'N/A')}\n"
+            header += f"**Crawled:** {data.get('date_crawled', 'N/A')}\n\n---\n\n"
+
+            content = header + data.get("content_markdown", data.get("content", ""))
+            output_path.write_text(content, encoding="utf-8")
+            print(f"  ✓ Saved: {output_path}")
 
 
 def convert_all():

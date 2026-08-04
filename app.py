@@ -1,149 +1,197 @@
 """
-RAG Chatbot — E-commerce Support (Starter Template)
-Streamlit app kết nối RAG Retrieval (Task 9) và Generation (Task 10).
-
-Chạy:
-    streamlit run app.py
+App Streamlit — Trợ Lý Tra Cứu Điểm Chuẩn & Đề Án Tuyển Sinh Đại Học
+(K4-Day08 RAG Pipeline Project)
 """
 
-import os
 import sys
 from pathlib import Path
-
 import streamlit as st
-from dotenv import load_dotenv
 
-load_dotenv()
+# Clean sys.path if old OPERA-main conflict exists
+sys.path = [p for p in sys.path if "OPERA-main" not in p]
 
-# Thêm project root vào sys.path để import các task từ src/
-PROJECT_ROOT = Path(__file__).parent
-sys.path.insert(0, str(PROJECT_ROOT))
+from src.task10_generation import generate_with_citation
+from src.task9_retrieval_pipeline import retrieve
 
-# =============================================================================
-# PAGE CONFIG
-# =============================================================================
-
+# Page configuration
 st.set_page_config(
-    page_title="E-commerce Support RAG Chatbot",
-    page_icon="🛒",
+    page_title="Trợ Lý Tuyển Sinh Đại Học AI",
+    page_icon="🎓",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="expanded"
 )
 
-# =============================================================================
-# SIDEBAR — INFO & SETTINGS
-# =============================================================================
+# Custom Styling (Dark Mode / Glassmorphism / Vibrant Accents)
+st.markdown("""
+<style>
+    .main {
+        background-color: #0f172a;
+        color: #f8fafc;
+    }
+    .stApp {
+        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+    }
+    .header-card {
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+    .title-text {
+        font-size: 2.2rem;
+        font-weight: 800;
+        background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 8px;
+    }
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-right: 6px;
+        background: #312e81;
+        color: #c7d2fe;
+        border: 1px solid #4338ca;
+    }
+    .source-box {
+        background: #1e293b;
+        border-left: 4px solid #6366f1;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-top: 8px;
+        font-size: 0.88rem;
+    }
+</style>
+""", unsafe_allow_dict=True)
 
+# Header Section
+st.markdown("""
+<div class="header-card">
+    <div class="title-text">🎓 Trợ Lý Tra Cứu Điểm Chuẩn & Đề Án Tuyển Sinh Đại Học</div>
+    <p style="color: #94a3b8; font-size: 1.05rem;">
+        Hệ thống RAG Pipeline v2 tra cứu tự động điểm chuẩn 3 năm (2023–2025), phương thức xét tuyển bằng chứng chỉ IELTS / SAT / ĐGTD / HSA, học phí và chỉ tiêu tuyển sinh của <b>Đại học Bách Khoa Hà Nội, VinUni, RMIT, Khoa học Tự nhiên</b>.
+    </p>
+    <div>
+        <span class="badge">Hybrid Search (Dense + BM25)</span>
+        <span class="badge">RRF Reranking</span>
+        <span class="badge">PageIndex Vectorless Fallback</span>
+        <span class="badge">Citations & References</span>
+    </div>
+</div>
+""", unsafe_allow_dict=True)
+
+# Sidebar Information
 with st.sidebar:
-    st.title("🛒 E-commerce Support RAG")
-    st.caption("Trợ lý hỏi đáp về chính sách thương mại điện tử và hỗ trợ khách hàng (đổi trả, thanh toán, bảo mật, người bán)")
-
+    st.image("https://img.icons8.com/isometric/96/graduation-cap.png", width=70)
+    st.header("📌 Thành Viên Nhóm")
+    st.markdown("""
+    - **Hoàng Bảo Huy** *(Leader - RAG Pipeline)*
+    - **Nguyễn Quốc Anh** *(Chatbot UI & Data)*
+    - **Trương Ái Linh** *(Evaluation & Golden Dataset)*
+    """)
     st.divider()
 
-    st.subheader("💡 Câu hỏi gợi ý")
-    suggestions = [
-        "Thời hạn yêu cầu trả hàng/hoàn tiền là bao lâu?",
-        "Shopee hỗ trợ những phương thức thanh toán nào?",
-        "Làm sao để đổi phương thức thanh toán đơn hàng?",
-        "Quy định về đăng bán sản phẩm cho người bán?",
-        "Cách mua hàng trên Shopee của quốc gia khác?",
-    ]
-    for s in suggestions:
-        if st.button(s, use_container_width=True, key=f"sug_{s[:20]}"):
-            st.session_state["pending_query"] = s
-
+    st.header("🏫 Trường Đại Học Hỗ Trợ")
+    st.markdown("""
+    - 🏛️ **Đại học Bách Khoa Hà Nội (HUST)**
+    - 🎓 **Đại học VinUni**
+    - 🌏 **Đại học RMIT Vietnam**
+    - 🔬 **Đại học Khoa học Tự nhiên (HUS)**
+    """)
     st.divider()
-    st.subheader("⚙️ Thiết lập")
-    top_k = st.slider("Số chunks retrieval (top_k)", 3, 10, 5)
 
-    st.divider()
-    st.caption("**Kiến trúc hệ thống:**")
-    st.caption("Hybrid Retrieval (Semantic + BM25) → RRF Rerank → PageIndex Fallback → LLM Generation có Citation")
+    st.header("⚙️ Cấu Hình Pipeline")
+    top_k = st.slider("Top K Chunks Context", min_value=2, max_value=10, value=5)
+    score_threshold = st.slider("Semantic Fallback Threshold", min_value=0.1, max_value=0.8, value=0.3)
+    use_reranking = st.checkbox("Sử dụng RRF Reranking", value=True)
 
-# =============================================================================
-# SESSION STATE
-# =============================================================================
+# Sample Queries
+st.subheader("💡 Câu Hỏi Truy Vấn Mẫu")
+col1, col2 = st.columns(2)
 
+sample_q1 = "Điều kiện xét tuyển thẳng bằng chứng chỉ IELTS vào Đại học Bách Khoa Hà Nội năm nay như thế nào?"
+sample_q2 = "So sánh học phí và chỉ tiêu ngành Khoa học Máy tính giữa VinUni và RMIT."
+
+with col1:
+    if st.button(f"👉 {sample_q1}"):
+        st.session_state["user_input"] = sample_q1
+
+with col2:
+    if st.button(f"👉 {sample_q2}"):
+        st.session_state["user_input"] = sample_q2
+
+# Initialize Conversation Memory
 if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "pending_query" not in st.session_state:
-    st.session_state.pending_query = None
+    st.session_state.messages = [
+        {
+            "role": "assistant",
+            "content": "Xin chào! Tôi là trợ lý AI tra cứu đề án tuyển sinh và điểm chuẩn đại học. Bạn muốn tìm hiểu thông tin về trường nào (Bách Khoa, VinUni, RMIT, KHTN...)?"
+        }
+    ]
 
-# =============================================================================
-# MAIN CHAT AREA
-# =============================================================================
-
-st.title("🛒 E-commerce Support RAG Chatbot")
-st.caption("Hệ thống hỏi đáp chính sách e-commerce và trợ giúp khách hàng")
-
-# Hiển thị lịch sử chat
+# Display Chat History
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
-        if msg["role"] == "assistant" and "sources" in msg and msg["sources"]:
-            with st.expander(f"📚 Nguồn tham khảo ({len(msg['sources'])} chunks)"):
-                for i, src in enumerate(msg["sources"], 1):
+        if "sources" in msg and msg["sources"]:
+            with st.expander("📚 Xem nguồn trích dẫn tài liệu gốc"):
+                for idx, src in enumerate(msg["sources"], 1):
                     meta = src.get("metadata", {})
-                    source_name = meta.get("source", "Unknown")
-                    doc_type = meta.get("type", "unknown")
-                    score = src.get("score", 0)
-                    st.markdown(f"**[{i}] {source_name}** `{doc_type}` | score: `{score:.4f}`")
-                    st.text(src.get("content", "")[:300] + "...")
-                    st.divider()
+                    source_name = meta.get("source", f"Nguồn {idx}")
+                    score = src.get("score", 0.0)
+                    ret_src = src.get("source", "hybrid")
+                    st.markdown(f"""
+                    <div class="source-box">
+                        <b>[{idx}] {source_name}</b> (Điểm: {score:.3f} | Nguồn: <code style="color:#818cf8;">{ret_src}</code>)<br/>
+                        <div style="color: #cbd5e1; margin-top: 4px;">"{src['content'][:250]}..."</div>
+                    </div>
+                    """, unsafe_allow_dict=True)
 
-# =============================================================================
-# QUERY HANDLING
-# =============================================================================
+# Chat Input & Processing
+prompt = st.chat_input("Nhập câu hỏi tra cứu điểm chuẩn, học phí, chỉ tiêu tuyển sinh...")
 
-user_input = st.chat_input("Nhập câu hỏi của bạn về chính sách/hỗ trợ e-commerce...")
-query = user_input or st.session_state.pending_query
+# Handle sample button clicks
+if "user_input" in st.session_state and st.session_state["user_input"]:
+    prompt = st.session_state.pop("user_input")
 
-if query:
-    st.session_state.pending_query = None
-
-    # Hiển thị câu hỏi của user
-    st.session_state.messages.append({"role": "user", "content": query})
+if prompt:
+    # Append user message
+    st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
-        st.markdown(query)
+        st.markdown(prompt)
 
-    # Sinh câu trả lời từ RAG Pipeline
+    # Generate Response via RAG Pipeline
     with st.chat_message("assistant"):
-        with st.spinner("Đang tìm kiếm tài liệu và tổng hợp câu trả lời..."):
-            try:
-                # TODO (Học viên): Tích hợp hàm sinh câu trả lời từ Task 10
-                # Ví dụ:
-                # from src.task10_generation import generate_with_citation
-                # response = generate_with_citation(query, top_k=top_k)
-                # answer = response["answer"]
-                # sources = response.get("sources", [])
-
-                from src.task10_generation import generate_with_citation
-                response = generate_with_citation(query, top_k=top_k)
-                answer = response.get("answer", "Chưa thể trả lời.")
-                sources = response.get("sources", [])
-
-            except NotImplementedError:
-                answer = "⚠️ **Task 10 chưa được implement.** Hãy hoàn thành `src/task10_generation.py` để kết nối pipeline vào UI!"
-                sources = []
-            except Exception as e:
-                answer = f"❌ **Lỗi khi chạy RAG Pipeline:** {e}"
-                sources = []
+        with st.spinner("🔍 Đang truy vấn văn bản tuyển sinh & tổng hợp trích dẫn..."):
+            res = generate_with_citation(prompt, top_k=top_k)
+            answer = res["answer"]
+            sources = res["sources"]
 
             st.markdown(answer)
 
             if sources:
-                with st.expander(f"📚 Nguồn tham khảo ({len(sources)} chunks)"):
-                    for i, src in enumerate(sources, 1):
+                with st.expander("📚 Xem nguồn trích dẫn tài liệu gốc"):
+                    for idx, src in enumerate(sources, 1):
                         meta = src.get("metadata", {})
-                        source_name = meta.get("source", "Unknown")
-                        doc_type = meta.get("type", "unknown")
-                        score = src.get("score", 0)
-                        st.markdown(f"**[{i}] {source_name}** `{doc_type}` | score: `{score:.4f}`")
-                        st.text(src.get("content", "")[:300] + "...")
-                        st.divider()
+                        source_name = meta.get("source", f"Nguồn {idx}")
+                        score = src.get("score", 0.0)
+                        ret_src = src.get("source", "hybrid")
+                        st.markdown(f"""
+                        <div class="source-box">
+                            <b>[{idx}] {source_name}</b> (Điểm: {score:.3f} | Nguồn: <code style="color:#818cf8;">{ret_src}</code>)<br/>
+                            <div style="color: #cbd5e1; margin-top: 4px;">"{src['content'][:250]}..."</div>
+                        </div>
+                        """, unsafe_allow_dict=True)
 
+    # Append assistant response to memory
     st.session_state.messages.append({
         "role": "assistant",
         "content": answer,
-        "sources": sources,
+        "sources": sources
     })
