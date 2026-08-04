@@ -1,10 +1,10 @@
-"""Streamlit UI for the university admission RAG assistant."""
+"""Streamlit UI for the university admission RAG assistant.
 
-from __future__ import annotations
-"""
 App Streamlit — Trợ Lý Tra Cứu Điểm Chuẩn & Đề Án Tuyển Sinh Đại Học
 (K4-Day08 RAG Pipeline Project)
 """
+
+from __future__ import annotations
 
 import sys
 from html import escape
@@ -17,25 +17,18 @@ from dotenv import load_dotenv
 load_dotenv()
 PROJECT_ROOT = Path(__file__).parent
 sys.path.insert(0, str(PROJECT_ROOT))
-
-from src.task10_generation import generate_with_citation
-
-import streamlit as st
-
-# Clean sys.path if old OPERA-main conflict exists
 sys.path = [p for p in sys.path if "OPERA-main" not in p]
-
-from src.task10_generation import generate_with_citation
-from src.task9_retrieval_pipeline import retrieve
 
 # Page configuration
 st.set_page_config(
-    page_title="Trợ lý Tuyển sinh Đại học",
-    page_title="Trợ Lý Tuyển Sinh Đại Học AI",
+    page_title="Trợ lý Tuyển sinh Đại học AI",
     page_icon="🎓",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+from src.task10_generation import generate_with_citation
+from src.task9_retrieval_pipeline import retrieve
 
 st.markdown(
     """
