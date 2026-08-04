@@ -1,199 +1,254 @@
-"""
-Task 10 — Generation Có Citation.
+"""Task 10 - Generate admission answers with citations.
 
-Hướng dẫn:
-    1. Chọn top_k, top_p phù hợp (giải thích lý do)
-    2. Sắp xếp lại chunks sau reranking để tránh "lost in the middle"
-    3. Inject context vào prompt
-    4. Yêu cầu LLM trả lời có citation
-    5. Nếu không đủ evidence → "I cannot verify this information"
-
-Gợi ý LLM: OpenRouter có nhiều model gắn hậu tố ":free" không tính phí — xem
-https://openrouter.ai/models?max_price=0 — phù hợp nếu chưa có credit trả phí.
-Base URL: "https://openrouter.ai/api/v1", dùng chung interface với OpenAI SDK.
+This module is intentionally tolerant of an unfinished Task 9.  When the real
+retriever is unavailable, a small, clearly labelled demo corpus lets the UI be
+developed and demonstrated without presenting mock facts as production data.
 """
+
+from __future__ import annotations
 
 import os
-from dotenv import load_dotenv
+from typing import Callable, Iterable
 
-load_dotenv()
+from dotenv import load_dotenv
 
 from .task9_retrieval_pipeline import retrieve
 
+load_dotenv()
 
-# =============================================================================
-# CONFIGURATION — Giải thích lựa chọn
-# =============================================================================
-
-# top_k: Số chunks đưa vào context
-# Chọn 5 vì: đủ evidence mà không quá dài gây lost in the middle
 TOP_K = 5
-
-# top_p (nucleus sampling): Xác suất tích luỹ cho token generation
-# Chọn 0.9 vì: đủ diverse nhưng không quá random
 TOP_P = 0.9
+TEMPERATURE = 0.2
+LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-4o-mini")
 
-# temperature: Độ ngẫu nhiên của output
-# Chọn 0.3 vì: RAG cần factual, ít sáng tạo
-TEMPERATURE = 0.3
+INSUFFICIENT_EVIDENCE = (
+    "Tôi không thể xác minh thông tin này từ các nguồn tuyển sinh hiện có."
+)
 
-# TODO: Chọn LLM model (OpenRouter model ID)
-LLM_MODEL = "openai/gpt-4o-mini"  # hoặc model ":free" nếu chưa có credit
-
-
-# =============================================================================
-# SYSTEM PROMPT
-# =============================================================================
-
-SYSTEM_PROMPT = """Bạn là trợ lý trả lời câu hỏi về chính sách thương mại điện tử và hỗ trợ
-khách hàng (thanh toán, đổi trả, giao hàng, quyền riêng tư, quy định người bán).
+SYSTEM_PROMPT = """Bạn là trợ lý tra cứu tuyển sinh đại học dành cho học sinh và phụ huynh.
 
 Quy tắc bắt buộc:
-1. Chỉ sử dụng thông tin từ context được cung cấp — KHÔNG bịa đặt
-2. Mỗi khẳng định phải có trích dẫn ngay sau, ví dụ: [Returns Policy, 2026]
-3. Nếu context không đủ thông tin → trả lời: "Tôi không thể xác minh thông tin này từ nguồn hiện có"
-4. Trả lời bằng tiếng Việt, có cấu trúc rõ ràng theo đoạn văn
-5. Không suy luận hay mở rộng ngoài những gì được nêu trong context"""
+1. Chỉ sử dụng thông tin có trong CONTEXT; không suy đoán hoặc dùng kiến thức bên ngoài.
+2. Mỗi thông tin thực tế phải có trích dẫn ngay sau câu theo dạng [Tên nguồn, Năm].
+3. Phân biệt rõ trường, ngành, năm tuyển sinh và phương thức xét tuyển.
+4. Khi so sánh, trình bày cân bằng theo từng tiêu chí và không tự kết luận trường nào tốt hơn.
+5. Nếu context không đủ, nói chính xác: "Tôi không thể xác minh thông tin này từ các nguồn tuyển sinh hiện có."
+6. Trả lời bằng tiếng Việt, ngắn gọn và dễ đọc.
+7. Lịch sử hội thoại chỉ giúp hiểu câu hỏi nối tiếp; không được xem là nguồn bằng chứng."""
 
 
-# =============================================================================
-# DOCUMENT REORDERING (tránh lost in the middle)
-# =============================================================================
+DEMO_CHUNKS = [
+    {
+        "content": (
+            "DỮ LIỆU MINH HỌA: Thí sinh có chứng chỉ IELTS cần kiểm tra đề án "
+            "tuyển sinh của đúng năm để biết ngưỡng điểm, thời hạn và phương thức kết hợp."
+        ),
+        "score": 0.95,
+        "metadata": {
+            "source": "Đề án tuyển sinh minh họa - Bách khoa Hà Nội",
+            "year": "2025",
+            "university": "Đại học Bách khoa Hà Nội",
+            "category": "admission_policy",
+            "url": "",
+        },
+        "source": "demo",
+    },
+    {
+        "content": (
+            "DỮ LIỆU MINH HỌA: Học phí, chỉ tiêu và chính sách học bổng có thể khác nhau "
+            "theo ngành và năm; cần đối chiếu tài liệu chính thức của từng trường."
+        ),
+        "score": 0.85,
+        "metadata": {
+            "source": "Bảng thông tin tuyển sinh minh họa",
+            "year": "2025",
+            "university": "Nhiều trường",
+            "category": "tuition_and_quota",
+            "url": "",
+        },
+        "source": "demo",
+    },
+]
+
+
+def normalize_chunk(item: dict, index: int = 1) -> dict:
+    """Convert common retriever output shapes into the Role 3 contract."""
+    metadata = item.get("metadata") or {}
+    if not isinstance(metadata, dict):
+        metadata = {}
+
+    content = item.get("content") or item.get("text") or item.get("document") or ""
+    source_name = (
+        metadata.get("source")
+        or metadata.get("title")
+        or item.get("title")
+        or item.get("source_name")
+        or f"Tài liệu {index}"
+    )
+    normalized_metadata = {
+        **metadata,
+        "source": str(source_name),
+        "year": str(metadata.get("year") or item.get("year") or "không rõ năm"),
+        "university": metadata.get("university") or item.get("university") or "",
+        "category": metadata.get("category") or metadata.get("type") or "unknown",
+        "url": metadata.get("url") or item.get("url") or "",
+    }
+    try:
+        score = float(item.get("score", item.get("similarity", 0.0)))
+    except (TypeError, ValueError):
+        score = 0.0
+
+    return {
+        "content": str(content).strip(),
+        "score": score,
+        "metadata": normalized_metadata,
+        "source": item.get("source", "hybrid"),
+    }
+
 
 def reorder_for_llm(chunks: list[dict]) -> list[dict]:
-    """
-    Sắp xếp chunks để tránh "lost in the middle" effect.
+    """Put high-ranked evidence at both edges to reduce lost-in-the-middle."""
+    if len(chunks) <= 2:
+        return list(chunks)
+    front = chunks[::2]
+    back = chunks[1::2]
+    return front + back[::-1]
 
-    LLM nhớ tốt thông tin ở ĐẦU và CUỐI prompt, quên thông tin ở GIỮA.
-    Strategy: đặt chunks quan trọng nhất ở đầu và cuối, kém quan trọng ở giữa.
-
-    Input order (by score):  [1, 2, 3, 4, 5]
-    Output order:            [1, 3, 5, 4, 2]
-    (best first, worst in middle, second-best last)
-
-    Args:
-        chunks: List sorted by score descending (from retrieval)
-
-    Returns:
-        List reordered để maximize LLM attention.
-    """
-    # TODO: Implement reordering
-    #
-    # if len(chunks) <= 2:
-    #     return chunks
-    #
-    # front = chunks[::2]   # index 0, 2, 4 -> đặt ở đầu
-    # back = chunks[1::2]   # index 1, 3    -> đặt ở cuối (reversed)
-    # return front + back[::-1]
-    raise NotImplementedError("Implement reorder_for_llm")
-
-
-# =============================================================================
-# CONTEXT FORMATTING
-# =============================================================================
 
 def format_context(chunks: list[dict]) -> str:
-    """
-    Format chunks thành context string cho prompt.
-    Mỗi chunk có label source để LLM có thể cite.
-
-    Args:
-        chunks: List of {'content': str, 'metadata': dict, 'score': float}
-
-    Returns:
-        Formatted context string.
-    """
-    # TODO: Implement context formatting
-    #
-    # context_parts = []
-    # for i, chunk in enumerate(chunks, 1):
-    #     source = chunk.get("metadata", {}).get("source", f"Source {i}")
-    #     doc_type = chunk.get("metadata", {}).get("type", "unknown")
-    #     context_parts.append(
-    #         f"[Document {i} | Source: {source} | Type: {doc_type}]\n"
-    #         f"{chunk['content']}\n"
-    #     )
-    # return "\n---\n".join(context_parts)
-    raise NotImplementedError("Implement format_context")
+    """Format evidence with stable labels that the model can cite."""
+    parts: list[str] = []
+    for index, raw_chunk in enumerate(chunks, 1):
+        chunk = normalize_chunk(raw_chunk, index)
+        if not chunk["content"]:
+            continue
+        meta = chunk["metadata"]
+        header = (
+            f"[Document {index} | Source: {meta['source']} | Year: {meta['year']}"
+            f" | University: {meta['university'] or 'không rõ'}"
+            f" | Category: {meta['category']}]"
+        )
+        parts.append(f"{header}\n{chunk['content']}")
+    return "\n\n---\n\n".join(parts)
 
 
-# =============================================================================
-# GENERATION
-# =============================================================================
+def _format_history(history: Iterable[dict] | None, max_messages: int = 6) -> str:
+    if not history:
+        return "(không có)"
+    lines = []
+    for message in list(history)[-max_messages:]:
+        role = "Người dùng" if message.get("role") == "user" else "Trợ lý"
+        content = str(message.get("content", "")).strip()
+        if content:
+            lines.append(f"{role}: {content[:1000]}")
+    return "\n".join(lines) or "(không có)"
 
-def generate_with_citation(query: str, top_k: int = TOP_K) -> dict:
-    """
-    End-to-end RAG generation có citation.
 
-    Pipeline:
-        1. Retrieve relevant chunks
-        2. Reorder để tránh lost in the middle
-        3. Format context với source labels
-        4. Build prompt (system + context + query)
-        5. Call LLM
-        6. Return answer + sources
+def _demo_answer(chunks: list[dict], reason: str) -> str:
+    if not chunks:
+        return INSUFFICIENT_EVIDENCE
+    citations = []
+    for chunk in chunks[:2]:
+        meta = chunk["metadata"]
+        citations.append(f"[{meta['source']}, {meta['year']}]")
+    return (
+        "⚠️ **Chế độ demo:** Pipeline retrieval hoặc LLM thật chưa sẵn sàng "
+        f"({reason}). Các đoạn đang hiển thị chỉ dùng để kiểm thử giao diện. "
+        + " ".join(citations)
+    )
 
-    Args:
-        query: Câu hỏi của user
 
-    Returns:
-        {
-            'answer': str,           # Câu trả lời có citation
-            'sources': list[dict],   # Các chunks đã dùng
-            'retrieval_source': str  # 'hybrid' hoặc 'pageindex'
+def _get_chunks(
+    query: str,
+    top_k: int,
+    retriever: Callable[..., list[dict]] | None,
+    allow_demo: bool,
+) -> tuple[list[dict], bool, str]:
+    selected_retriever = retriever or retrieve
+    try:
+        raw_chunks = selected_retriever(query, top_k=top_k)
+        chunks = [normalize_chunk(item, i) for i, item in enumerate(raw_chunks or [], 1)]
+        chunks = [item for item in chunks if item["content"]]
+        return chunks[:top_k], False, ""
+    except (NotImplementedError, ImportError, FileNotFoundError) as exc:
+        if not allow_demo:
+            raise
+        demo = [normalize_chunk(item, i) for i, item in enumerate(DEMO_CHUNKS, 1)]
+        return demo[:top_k], True, type(exc).__name__
+
+
+def generate_with_citation(
+    query: str,
+    top_k: int = TOP_K,
+    conversation_history: list[dict] | None = None,
+    retriever: Callable[..., list[dict]] | None = None,
+    allow_demo: bool = True,
+) -> dict:
+    """Run retrieval and generation, always returning a UI-friendly payload."""
+    query = query.strip()
+    if not query:
+        return {
+            "answer": "Vui lòng nhập câu hỏi tuyển sinh.",
+            "sources": [],
+            "retrieval_source": "none",
+            "is_demo": False,
         }
-    """
-    # TODO: Implement generation pipeline
-    #
-    # # Step 1: Retrieve
-    # chunks = retrieve(query, top_k=top_k)
-    #
-    # # Step 2: Reorder
-    # reordered = reorder_for_llm(chunks)
-    #
-    # # Step 3: Format context
-    # context = format_context(reordered)
-    #
-    # # Step 4: Build prompt
-    # user_message = f"""Context:\n{context}\n\n---\n\nQuestion: {query}"""
-    #
-    # # Step 5: Call LLM (OpenRouter — OpenAI-compatible API)
-    # from openai import OpenAI
-    # api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
-    # client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
-    #
-    # response = client.chat.completions.create(
-    #     model=LLM_MODEL,
-    #     messages=[
-    #         {"role": "system", "content": SYSTEM_PROMPT},
-    #         {"role": "user", "content": user_message}
-    #     ],
-    #     temperature=TEMPERATURE,
-    #     top_p=TOP_P,
-    # )
-    #
-    # answer = response.choices[0].message.content
-    #
-    # # Step 6: Return
-    # return {
-    #     "answer": answer,
-    #     "sources": chunks,
-    #     "retrieval_source": chunks[0].get("source", "hybrid") if chunks else "none"
-    # }
-    raise NotImplementedError("Implement generate_with_citation")
+
+    chunks, is_demo, demo_reason = _get_chunks(query, top_k, retriever, allow_demo)
+    if not chunks:
+        return {
+            "answer": INSUFFICIENT_EVIDENCE,
+            "sources": [],
+            "retrieval_source": "none",
+            "is_demo": False,
+        }
+
+    reordered = reorder_for_llm(chunks)
+    context = format_context(reordered)
+    api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
+
+    if is_demo:
+        answer = _demo_answer(chunks, demo_reason)
+    elif not api_key:
+        answer = _demo_answer(chunks, "thiếu OPENROUTER_API_KEY hoặc OPENAI_API_KEY")
+        is_demo = True
+    else:
+        from openai import OpenAI
+
+        using_openrouter = bool(os.getenv("OPENROUTER_API_KEY"))
+        client_kwargs = {"api_key": api_key}
+        if using_openrouter:
+            client_kwargs["base_url"] = "https://openrouter.ai/api/v1"
+        client = OpenAI(**client_kwargs)
+
+        user_message = f"""LỊCH SỬ HỘI THOẠI:
+{_format_history(conversation_history)}
+
+CONTEXT:
+{context}
+
+CÂU HỎI HIỆN TẠI:
+{query}"""
+        model = LLM_MODEL if using_openrouter else os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_message},
+            ],
+            temperature=TEMPERATURE,
+            top_p=TOP_P,
+        )
+        answer = response.choices[0].message.content or INSUFFICIENT_EVIDENCE
+
+    return {
+        "answer": answer,
+        "sources": chunks,
+        "retrieval_source": chunks[0].get("source", "hybrid"),
+        "is_demo": is_demo,
+    }
 
 
 if __name__ == "__main__":
-    test_queries = [
-        "Shopee hỗ trợ những phương thức thanh toán nào?",
-        "Làm sao để yêu cầu đổi trả hay hoàn tiền?",
-        "Cần chuẩn bị bằng chứng gì khi yêu cầu hoàn tiền?",
-    ]
-
-    for q in test_queries:
-        print(f"\n{'='*70}")
-        print(f"Q: {q}")
-        print("=" * 70)
-        result = generate_with_citation(q)
-        print(f"\nA: {result['answer']}")
-        print(f"\n[Sources: {len(result['sources'])} chunks | via {result['retrieval_source']}]")
+    result = generate_with_citation("Điều kiện xét tuyển bằng IELTS là gì?")
+    print(result["answer"])
