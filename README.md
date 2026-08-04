@@ -559,10 +559,9 @@ run_dashboard()
 
 | Thành viên | MSSV | Nhiệm vụ | Trạng thái |
 |-----------|------|----------|------------|
-| | | | |
-| | | | |
-| | | | |
-| | | | |
+| Hoàng Bảo Huy | K4-2026 | RAG Pipeline (Tasks 1-10) & Retrieval Optimization | Completed |
+| Nguyễn Quốc Anh | K4-2026 | Chatbot UI (Streamlit) & Document Processing | Completed |
+| Trương Ái Linh | K4-2026 | Golden Dataset & RAG Evaluation Pipeline | Completed |
 
 ---
 

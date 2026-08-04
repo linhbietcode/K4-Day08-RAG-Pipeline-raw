@@ -1,17 +1,77 @@
 [
   {
-    "question": "Người mua có thể yêu cầu trả hàng/hoàn tiền trong thời hạn bao lâu sau khi nhận hàng?",
-    "expected_answer": "Trong vòng 15 ngày kể từ khi giao hàng thành công (24 giờ đối với thực phẩm tươi sống/đông lạnh).",
-    "expected_context": "Trang Returns and Refunds Policy, mục Return/Refund Eligibility"
+    "question": "Điều kiện xét tuyển thẳng bằng chứng chỉ IELTS vào Đại học Bách Khoa Hà Nội năm nay như thế nào?",
+    "expected_answer": "Thí sinh cần có chứng chỉ IELTS Academic từ 6.0 trở lên còn hiệu lực. Điểm IELTS được quy đổi sang điểm môn Tiếng Anh (6.0 = 8.5 điểm, 6.5 = 9.0 điểm, 7.0 = 9.5 điểm, 7.5+ = 10.0 điểm). Thí sinh cần có điểm trung bình học bạ 3 năm THPT môn Toán và Lý (hoặc Hóa) từ 8.0/môn trở lên.",
+    "expected_context": "Thí sinh phải đạt chứng chỉ IELTS Academic từ 6.0 trở lên. IELTS 6.0 = 8.5 điểm, IELTS 6.5 = 9.0 điểm, IELTS 7.0 = 9.5 điểm, IELTS 7.5 trở lên = 10.0 điểm môn Tiếng Anh. Điểm học bạ 3 năm THPT các môn trong tổ hợp xét tuyển từ 8.0/môn trở lên."
   },
   {
-    "question": "Shopee hỗ trợ những phương thức thanh toán nào?",
-    "expected_answer": "ShopeePay Wallet, thẻ tín dụng/ghi nợ, trả góp qua thẻ, QR Code, chuyển khoản qua app ngân hàng, thẻ NAPAS, Apple Pay, Google Pay, và COD.",
-    "expected_context": "Trang Payment Methods Overview"
+    "question": "So sánh học phí và chỉ tiêu ngành Khoa học Máy tính giữa VinUni và RMIT.",
+    "expected_answer": "Học phí ngành Khoa học Máy tính tại VinUni là 35.000 USD/năm (khoảng 850 triệu VNĐ/năm), chỉ tiêu 120 sinh viên/năm. Tại RMIT Việt Nam, học phí khoảng 320 - 340 triệu VNĐ/năm (tổng 3 năm khoảng 960 triệu VNĐ), chỉ tiêu 350 sinh viên/năm.",
+    "expected_context": "VinUni học phí 35.000 USD/năm (850 triệu VNĐ/năm), chỉ tiêu 120 sinh viên. RMIT học phí khoảng 320 - 340 triệu VNĐ/năm (tổng 3 năm khoảng 960 triệu VNĐ), chỉ tiêu 350 sinh viên."
   },
   {
-    "question": "Người bán không được đăng bán những sản phẩm nào?",
-    "expected_answer": "Hàng giả/nhái, sản phẩm bất hợp pháp, vi phạm sở hữu trí tuệ, và các mặt hàng nằm trong danh sách cấm của sàn.",
-    "expected_context": "Trang Product Listing Regulations, mục Prohibited Content"
+    "question": "Điểm chuẩn ngành Khoa học Máy tính (IT1) của Đại học Bách Khoa Hà Nội qua 3 năm 2023, 2024, 2025 là bao nhiêu?",
+    "expected_answer": "Điểm chuẩn ngành Khoa học Máy tính (IT1) Bách Khoa Hà Nội theo điểm thi THPT: Năm 2023 là 29.42 điểm, Năm 2024 là 29.25 điểm, và Năm 2025 là 29.35 điểm.",
+    "expected_context": "Ngành Khoa học Máy tính (IT1) Bách Khoa Hà Nội: Năm 2023: 29.42 điểm, Năm 2024: 29.25 điểm, Năm 2025: 29.35 điểm."
+  },
+  {
+    "question": "Kỳ thi Đánh giá tư duy (TSA) của Đại học Bách Khoa Hà Nội gồm những phần thi nào?",
+    "expected_answer": "Kỳ thi TSA gồm 3 phần (150 phút, tổng 100 điểm): Tư duy Toán học (60 phút, 40 điểm), Tư duy Đọc hiểu (30 phút, 20 điểm), và Tư duy Khoa học / Giải quyết vấn đề (60 phút, 40 điểm).",
+    "expected_context": "Cấu trúc bài thi TSA gồm 3 phần (150 phút, 100 điểm): Tư duy Toán học (60 phút, 40 điểm), Tư duy Đọc hiểu (30 phút, 20 điểm), Tư duy Khoa học / Giải quyết vấn đề (60 phút, 40 điểm)."
+  },
+  {
+    "question": "Trường Đại học Khoa học Tự nhiên - ĐHQGHN (HUS) nhận hồ sơ xét tuyển bằng điểm thi HSA từ bao nhiêu điểm?",
+    "expected_answer": "Ngưỡng sàn nhận hồ sơ xét tuyển theo điểm thi Đánh giá năng lực (HSA) do ĐHQGHN tổ chức vào HUS là từ 80/150 điểm trở lên.",
+    "expected_context": "Xét tuyển theo kết quả thi Đánh giá năng lực (HSA) do ĐHQGHN tổ chức (điểm sàn tối thiểu 80/150)."
+  },
+  {
+    "question": "Các mức học bổng dành cho tân sinh viên xuất sắc tại Đại học VinUni gồm những mức nào?",
+    "expected_answer": "VinUni có Học bổng Tài năng mức 50%, 75%, 100% và 100%+ (bao gồm 1.500 USD sinh hoạt phí/năm), cùng các mức Hỗ trợ tài chính từ 50% đến 80% học phí.",
+    "expected_context": "Học bổng Tài năng mức 50%, 75%, 100% và 100%+ (bao gồm sinh hoạt phí). Hỗ trợ tài chính từ 50% đến 80% học phí."
+  },
+  {
+    "question": "Học phí chương trình đại trà và chương trình tiên tiến ELITE tại Bách Khoa Hà Nội khác nhau thế nào?",
+    "expected_answer": "Chương trình đại trà (chuẩn) có học phí từ 24 đến 30 triệu VNĐ/năm. Chương trình ELITE / Global ICT dạy bằng tiếng Anh có học phí từ 40 đến 60 triệu VNĐ/năm.",
+    "expected_context": "Chương trình đại trà: 24.000.000 - 30.000.000 VNĐ/năm. Chương trình ELITE / Global ICT: 40.000.000 - 60.000.000 VNĐ/năm."
+  },
+  {
+    "question": "Yêu cầu điểm IELTS tối thiểu để nhập học ngành Khoa học Máy tính tại RMIT Việt Nam là bao nhiêu?",
+    "expected_answer": "RMIT Việt Nam yêu cầu chứng chỉ IELTS Academic từ 6.5 trở lên (không có kỹ năng nào dưới 6.0) cùng điểm trung bình GPA THPT lớp 12 từ 7.0 trở lên.",
+    "expected_context": "IELTS Academic từ 6.5 trở lên (không kỹ năng nào dưới 6.0) và tốt nghiệp THPT với GPA lớp 12 từ 7.0/10.0 trở lên."
+  },
+  {
+    "question": "Điểm chuẩn 3 năm gần nhất ngành Khoa học Máy tính và Thông tin tại Đại học Khoa học Tự nhiên (HUS) là bao nhiêu?",
+    "expected_answer": "Điểm chuẩn ngành Khoa học Máy tính và Thông tin tại HUS (KHTN): Năm 2023 là 27.20 điểm, Năm 2024 là 27.15 điểm, và Năm 2025 là 27.30 điểm.",
+    "expected_context": "Ngành Khoa học Máy tính và Thông tin HUS: Năm 2023: 27.20 điểm, Năm 2024: 27.15 điểm, Năm 2025: 27.30 điểm."
+  },
+  {
+    "question": "Tổng chỉ tiêu tuyển sinh năm nay của Đại học Bách Khoa Hà Nội là bao nhiêu?",
+    "expected_answer": "Đại học Bách Khoa Hà Nội tuyển 9.280 sinh viên cho 64 chương trình đào tạo.",
+    "expected_context": "Tổng chỉ tiêu tuyển sinh năm nay: 9.280 sinh viên cho 64 chương trình đào tạo."
+  },
+  {
+    "question": "Chính sách học bổng Nữ sinh Công nghệ tại RMIT Việt Nam hỗ trợ bao nhiêu % học phí?",
+    "expected_answer": "Học bổng Nữ sinh Công nghệ (Women in Tech) tại RMIT hỗ trợ 50% học phí cho nữ sinh đăng ký ngành Khoa học Máy tính hoặc IT.",
+    "expected_context": "Học bổng Nữ sinh Công nghệ (Women in Tech): 50% học phí cho nữ sinh đăng ký ngành Khoa học Máy tính hoặc IT."
+  },
+  {
+    "question": "Các tổ hợp môn xét tuyển thi tốt nghiệp THPT vào ngành Khoa học Máy tính tại HUS (KHTN) gồm những tổ hợp nào?",
+    "expected_answer": "Trường HUS xét tuyển theo các tổ hợp A00 (Toán, Lý, Hóa), A01 (Toán, Lý, Anh), và D07 (Toán, Hóa, Anh).",
+    "expected_context": "Xét tuyển kết quả thi THPT theo các tổ hợp A00 (Toán, Lý, Hóa), A01 (Toán, Lý, Anh), D07 (Toán, Hóa, Anh)."
+  },
+  {
+    "question": "Đại học VinUni tuyển sinh theo mô hình xét tuyển nào và hợp tác với các trường đại học nào của Mỹ?",
+    "expected_answer": "VinUni xét tuyển theo mô hình đánh giá toàn diện Holistic Admission (4 tiêu chí A-A-C-L), hợp tác chiến lược với Đại học Cornell và Đại học Pennsylvania (USA).",
+    "expected_context": "Mô hình toàn diện (Holistic Admission), hợp tác chiến lược với Đại học Cornell và Đại học Pennsylvania (USA)."
+  },
+  {
+    "question": "RMIT Việt Nam có mấy kỳ nhập học trong một năm?",
+    "expected_answer": "RMIT Việt Nam tuyển sinh 3 kỳ nhập học trong năm: Kỳ tháng 3, Kỳ tháng 7 và Kỳ tháng 11.",
+    "expected_context": "RMIT Việt Nam tuyển sinh 3 kỳ trong năm: Kỳ tháng 3, Kỳ tháng 7 và Kỳ tháng 11."
+  },
+  {
+    "question": "Chỉ tiêu tuyển sinh ngành Kỹ thuật Máy tính (IT2) tại Đại học Bách Khoa Hà Nội là bao nhiêu?",
+    "expected_answer": "Chỉ tiêu ngành Kỹ thuật Máy tính (IT2) Bách Khoa Hà Nội là 250 sinh viên.",
+    "expected_context": "Ngành Kỹ thuật Máy tính (IT2): Chỉ tiêu 250 sinh viên."
   }
 ]

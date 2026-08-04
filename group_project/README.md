@@ -79,10 +79,9 @@ Xem code mẫu (DeepEval/RAGAS/TruLens) chi tiết trong `README.md` gốc mục
 
 | Thành viên | MSSV | Nhiệm vụ | Trạng thái |
 |-----------|------|----------|------------|
-| | | | |
-| | | | |
-| | | | |
-| | | | |
+| Hoàng Bảo Huy | K4-2026 | Leader - RAG Pipeline (Tasks 1-10) & Retrieval Optimization | Completed |
+| Nguyễn Quốc Anh | K4-2026 | Chatbot UI (Streamlit) & Document Processing | Completed |
+| Trương Ái Linh | K4-2026 | Golden Dataset & RAG Evaluation Pipeline | Completed |
 
 ---
 
